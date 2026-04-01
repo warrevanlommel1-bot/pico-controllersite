@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PICO Controller — Team 218</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fafae6;
+      --panel: #fffff0;
+      --border: #d4d48a;
+      --accent: #2a52be;
+      --accent-glow: rgba(42,82,190,0.25);
+      --danger: #c0392b;
+      --danger-glow: rgba(192,57,43,0.3);
+      --success: #27ae60;
+      --text: #1a1a2e;
+      --muted: #7a7a50;
+      --mono: 'Share Tech Mono', monospace;
+      --display: 'Barlow Condensed', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(180,180,100,0.15) 39px, rgba(180,180,100,0.15) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(180,180,100,0.15) 39px, rgba(180,180,100,0.15) 40px);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      font-family: var(--display);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .outer {
+      width: 100%;
+      max-width: 1120px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .shell {
+      flex: 0 0 520px;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 0 0 6px rgba(212,212,138,0.3), 0 20px 60px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+      overflow: hidden;
+      animation: rise 0.5s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    .planner-shell {
+      flex: 1 1 0;
+      min-width: 0;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 0 0 6px rgba(212,212,138,0.3), 0 20px 60px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+      overflow: hidden;
+      animation: rise 0.5s cubic-bezier(.16,1,.3,1) both;
+    }
+    .planner-shell .planner-header {
+      background: var(--text);
+      padding: 18px 20px 16px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #e8c84a;
+    }
+    .planner-inner { padding: 16px 20px 20px; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      background: var(--text);
+      padding: 18px 24px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .header-left { display: flex; flex-direction: column; }
+    .brand { font-size: 22px; font-weight: 900; letter-spacing: 0.12em; color: #f5f0c8; text-transform: uppercase; }
+    .brand span { color: #e8c84a; }
+    .sub { font-family: var(--mono); font-size: 10px; color: #7a7888; letter-spacing: 0.15em; margin-top: 2px; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px; padding: 6px 14px 6px 10px;
+      font-family: var(--mono); font-size: 11px; color: #aaa;
+      transition: all 0.3s; white-space: nowrap;
+    }
+    .status-pill.connected { color: var(--success); border-color: rgba(39,174,96,0.4); background: rgba(39,174,96,0.08); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; transition: background 0.3s; flex-shrink: 0; }
+    .status-pill.connected .status-dot { background: var(--success); box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .connect-bar {
+      padding: 14px 24px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 10px; background: rgba(212,212,138,0.1);
+    }
+    .btn-connect {
+      flex: 1; font-family: var(--display); font-weight: 700; font-size: 13px;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 18px;
+      border: 1.5px solid var(--accent); border-radius: 8px;
+      background: var(--accent); color: white; cursor: pointer;
+      transition: all 0.15s ease; box-shadow: 0 2px 12px var(--accent-glow);
+    }
+    .btn-connect:hover { background: #1d3da8; box-shadow: 0 4px 20px var(--accent-glow); }
+    .btn-connect:active { transform: translateY(1px); }
+
+    .section { padding: 20px 24px 0; }
+    .section-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .dpad-wrap { display: flex; justify-content: center; padding: 4px 0 20px; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(3, 72px); gap: 6px; }
+    .dpad-btn {
+      width: 72px; height: 72px; border: 1.5px solid var(--border);
+      border-radius: 12px; background: white; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; font-family: var(--display); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+      transition: all 0.1s ease; position: relative; overflow: hidden; user-select: none;
+    }
+    .dpad-btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 4px 16px var(--accent-glow); transform: translateY(-1px); }
+    .dpad-btn:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(0,0,0,0.1); background: #eef2ff; }
+    .dpad-btn .arrow { font-size: 22px; line-height: 1; color: var(--text); }
+    .dpad-btn:hover .arrow { color: var(--accent); }
+    .dpad-btn.back-only { border-color: #e0a060; color: #c07020; }
+    .dpad-btn.back-only .arrow { color: #c07020; }
+    .dpad-btn.back-only:hover { border-color: var(--danger); color: var(--danger); box-shadow: 0 4px 16px var(--danger-glow); }
+    .dpad-btn.back-only:hover .arrow { color: var(--danger); }
+    .dpad-center { border: none; background: transparent; box-shadow: none; cursor: default; }
+    .dpad-center:hover { transform: none; border: none; }
+    .dpad-round {
+      border-radius: 50% !important; border-color: var(--accent) !important;
+      color: var(--accent) !important; background: #eef2ff !important;
+      box-shadow: 0 2px 10px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+    }
+    .dpad-round .round-icon { font-size: 18px; line-height: 1; }
+    .dpad-round span:last-child { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+    .dpad-round:hover { background: var(--accent) !important; color: white !important; box-shadow: 0 4px 18px var(--accent-glow) !important; transform: translateY(-1px); }
+    .dpad-round:hover span:last-child { color: white; }
+
+    .emergency-bar { padding: 16px 24px 0; }
+    .btn-emergency {
+      width: 100%; font-family: var(--display); font-weight: 900; font-size: 20px;
+      letter-spacing: 0.18em; text-transform: uppercase; padding: 16px;
+      border: 2.5px solid var(--danger); border-radius: 10px; background: white;
+      color: var(--danger); cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 12px; transition: all 0.15s ease;
+      box-shadow: 0 2px 16px rgba(192,57,43,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+      position: relative; overflow: hidden;
+    }
+    .btn-emergency::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(192,57,43,0.04) 6px, rgba(192,57,43,0.04) 12px);
+    }
+    .btn-emergency:hover { background: var(--danger); color: white; box-shadow: 0 6px 28px var(--danger-glow); transform: translateY(-1px); }
+    .btn-emergency:active { transform: translateY(1px); }
+    .stop-icon { font-size: 22px; }
+
+    .log-bar {
+      margin: 0 24px 0; background: var(--text); border-radius: 8px;
+      padding: 10px 14px; font-family: var(--mono); font-size: 11px;
+      color: #7a7888; min-height: 36px; display: flex; align-items: center; gap: 8px;
+    }
+    .log-bar .log-prefix { color: #e8c84a; flex-shrink: 0; }
+    .log-text { color: #b0b0c8; }
+    .log-text.ok { color: var(--success); }
+    .log-text.err { color: #e05c4a; }
+
+    .cali-panel {
+      margin: 16px 24px 0; background: var(--text); border-radius: 8px;
+      padding: 10px 14px; font-family: var(--mono); font-size: 10px; color: #7a7888;
+    }
+    .cali-panel .cali-title { color: #e8c84a; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+    .cali-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .cali-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .cali-item .ci-label { font-size: 8px; color: #555a77; letter-spacing: 0.1em; text-transform: uppercase; }
+    .cali-item .ci-value { color: #a8d8b0; font-size: 12px; }
+    .cali-item.ci-pending .ci-value { color: #555a77; }
+
+    .queue-section { padding: 18px 24px 0; }
+    .queue-box {
+      background: var(--text); border-radius: 8px; padding: 10px 12px;
+      font-family: var(--mono); font-size: 10px; min-height: 52px;
+      display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;
+    }
+    .queue-title { color: #e8c84a; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+    .queue-title span:last-child { color: #555a77; font-size: 9px; cursor: pointer; transition: color 0.15s; }
+    .queue-title span:last-child:hover { color: #e05c4a; }
+    .queue-items { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
+    .queue-item {
+      display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 6px;
+      border-radius: 5px; font-size: 9px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08); transition: all 0.12s; user-select: none;
+    }
+    .queue-item:hover { opacity: 0.65; }
+    .queue-item.q-fwd  { background: rgba(39,174,96,0.18);  color: #7de0a8; border-color: rgba(39,174,96,0.25); }
+    .queue-item.q-back { background: rgba(192,57,43,0.18);  color: #e8a070; border-color: rgba(192,57,43,0.25); }
+    .queue-item.q-left { background: rgba(232,200,74,0.18); color: #e8d07a; border-color: rgba(232,200,74,0.25); }
+    .queue-item.q-right{ background: rgba(232,200,74,0.18); color: #e8d07a; border-color: rgba(232,200,74,0.25); }
+    .queue-item.q-place{ background: rgba(42,82,190,0.2);   color: #b0c8f8; border-color: rgba(42,82,190,0.3); }
+    .queue-item.q-stop { background: rgba(192,57,43,0.2);   color: #e8a0a0; border-color: rgba(192,57,43,0.3); }
+    .queue-empty { color: #555a77; font-size: 9px; align-self: center; font-style: italic; }
+    .q-del { font-size: 10px; opacity: 0.5; }
+    .q-del:hover { opacity: 1; }
+
+    .queue-run-row { display: flex; gap: 8px; }
+    .btn-run-queue {
+      flex: 1; font-family: var(--display); font-weight: 700; font-size: 13px;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 14px;
+      border: 1.5px solid var(--success); border-radius: 8px;
+      background: var(--success); color: white; cursor: pointer;
+      transition: all 0.15s; box-shadow: 0 2px 12px rgba(39,174,96,0.25);
+    }
+    .btn-run-queue:hover { background: #1e8a4a; box-shadow: 0 4px 20px rgba(39,174,96,0.3); transform: translateY(-1px); }
+    .btn-run-queue:active { transform: translateY(1px); }
+    .btn-run-queue:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-clear-queue {
+      font-family: var(--mono); font-size: 10px; padding: 8px 14px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: transparent; color: var(--muted); cursor: pointer; transition: all 0.12s;
+    }
+    .btn-clear-queue:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Orientation picker ── */
+    .orient-row {
+      display: flex; gap: 5px; align-items: center; margin-bottom: 10px;
+      font-family: var(--mono); font-size: 9px; color: var(--muted);
+    }
+    .orient-label { letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+    .btn-orient {
+      flex: 1; font-family: var(--display); font-weight: 700; font-size: 11px;
+      letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 2px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      background: white; color: var(--muted); cursor: pointer; transition: all 0.12s;
+      display: flex; align-items: center; justify-content: center; gap: 3px;
+    }
+    .btn-orient:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+    .btn-orient.active { border-color: var(--accent); background: #eef2ff; color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+    /* ── Planner right panel ── */
+    .grid-legend {
+      display: flex; gap: 10px; margin-bottom: 10px;
+      font-family: var(--mono); font-size: 9px; color: var(--muted); align-items: center; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+    .legend-dot.start  { background: #e8c84a; border-color: #b8980a; }
+    .legend-dot.green  { background: #27ae60; border-color: #1a7a40; }
+    .legend-dot.red    { background: #c0392b; border-color: #8a1a10; }
+    .legend-dot.path   { background: var(--accent); border-color: #1630a0; }
+
+    .grid-wrap { display: flex; justify-content: center; margin-bottom: 12px; }
+    .route-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 100%; }
+
+    .grid-cell {
+      aspect-ratio: 1; border-radius: 7px; border: 1.5px solid var(--border);
+      background: white; cursor: pointer; transition: all 0.12s ease;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; user-select: none; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .grid-cell:hover { border-color: var(--accent); transform: scale(1.06); z-index: 1; }
+    .grid-cell.state-start { background: #fef9e0; border-color: #e8c84a; box-shadow: 0 0 0 2px rgba(232,200,74,0.3); }
+    .grid-cell.state-green { background: #e8f8ef; border-color: #27ae60; box-shadow: 0 0 0 2px rgba(39,174,96,0.25); }
+    .grid-cell.state-red   { background: #fdecea; border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192,57,43,0.2); }
+    .grid-cell.state-path  { background: #dce8ff; border-color: var(--accent); }
+
+    .cell-dot { width: 55%; height: 55%; border-radius: 50%; transition: all 0.12s; }
+    .state-start .cell-dot { background: #e8c84a; box-shadow: 0 0 6px rgba(232,200,74,0.6); }
+    .state-green .cell-dot { background: #27ae60; box-shadow: 0 0 6px rgba(39,174,96,0.5); }
+    .state-red   .cell-dot { background: #c0392b; box-shadow: 0 0 6px rgba(192,57,43,0.4); }
+    .state-path  .cell-dot { background: var(--accent); width: 30%; height: 30%; opacity: 0.7; }
+
+    .cell-label { position: absolute; bottom: 1px; right: 3px; font-family: var(--mono); font-size: 6px; color: var(--muted); opacity: 0.5; }
+    .cell-start-badge { position: absolute; top: 1px; left: 2px; font-size: 7px; }
+    .cell-heading-badge { position: absolute; bottom: 1px; left: 2px; font-size: 9px; line-height: 1; color: var(--accent); font-weight: bold; }
+
+    .planner-controls { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+    .btn-mode {
+      flex: 1; min-width: 70px; font-family: var(--display); font-weight: 700; font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 6px;
+      border: 1.5px solid var(--border); border-radius: 8px; background: white;
+      color: var(--muted); cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .btn-mode.active-green  { border-color: #27ae60; background: #e8f8ef; color: #27ae60; }
+    .btn-mode.active-red    { border-color: #c0392b; background: #fdecea; color: #c0392b; }
+    .btn-mode.active-start  { border-color: #c09020; background: #fef9e0; color: #c09020; }
+    .btn-mode:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+
+    .btn-calculate {
+      width: 100%; font-family: var(--display); font-weight: 700; font-size: 13px;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 11px;
+      border: 1.5px solid var(--accent); border-radius: 8px;
+      background: var(--accent); color: white; cursor: pointer;
+      transition: all 0.15s; box-shadow: 0 2px 12px var(--accent-glow); margin-bottom: 10px;
+    }
+    .btn-calculate:hover { background: #1d3da8; box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-1px); }
+    .btn-calculate:active { transform: translateY(1px); }
+
+    .route-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+    .btn-route-action {
+      flex: 1; font-family: var(--display); font-weight: 700; font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 6px;
+      border: 1.5px solid var(--border); border-radius: 8px; background: white;
+      color: var(--muted); cursor: pointer; transition: all 0.15s;
+    }
+    .btn-route-action.to-queue { border-color: var(--success); color: var(--success); background: #edfaf4; }
+    .btn-route-action.to-queue:hover { background: var(--success); color: white; }
+    .btn-route-action.send-now { border-color: var(--accent); color: var(--accent); background: #eef2ff; }
+    .btn-route-action.send-now:hover { background: var(--accent); color: white; }
+    .btn-route-action:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-clear { font-family: var(--mono); font-size: 9px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+    .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
+
+    .route-result {
+      background: var(--text); border-radius: 8px; padding: 10px 12px;
+      font-family: var(--mono); font-size: 9px; color: #7a7888;
+      margin-bottom: 16px; min-height: 44px; line-height: 1.7;
+    }
+    .route-result .r-label { color: #e8c84a; display: block; margin-bottom: 5px; font-size: 8px; letter-spacing: 0.15em; }
+    .route-result .r-err   { color: #e05c4a; }
+    .route-result .r-ok    { color: #6ed8a0; }
+    .step-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+    .step-badge { font-family: var(--mono); font-size: 8px; padding: 2px 6px; border-radius: 4px; background: rgba(42,82,190,0.25); color: #b0c8f8; }
+    .step-badge.fwd   { background: rgba(39,174,96,0.2);  color: #6ed8a0; }
+    .step-badge.back  { background: rgba(192,57,43,0.2);  color: #e8a0a0; }
+    .step-badge.turn  { background: rgba(232,200,74,0.2); color: #e8d07a; }
+    .step-badge.place { background: rgba(42,82,190,0.2);  color: #b0c8f8; }
+
+    .info-note {
+      font-family: var(--mono); font-size: 9px; color: #9a9a60;
+      background: rgba(212,212,138,0.15); border: 1px solid rgba(212,212,138,0.4);
+      border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; line-height: 1.5;
+    }
+    .info-note strong { color: #c07020; }
+
+    .spacer { height: 20px; }
+
+    @media (max-width: 900px) {
+      .outer { flex-direction: column; max-width: 560px; }
+      .shell { flex: none; width: 100%; }
+      .planner-shell { flex: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="outer">
+
+  <!-- LEFT COLUMN -->
+  <div class="shell">
+
+    <div class="header">
+      <div class="header-left">
+        <div class="brand">TEAM<span> 218</span></div>
+        <div class="sub">ws://192.168.4.1:5000</div>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <div class="status-dot"></div>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </div>
+
+    <div class="connect-bar">
+      <button class="btn-connect" onclick="connect_socket()">&#9889; Connect to PICO</button>
+      <button class="btn-connect" style="background:transparent; color:var(--accent); flex:0 0 auto;" onclick="sendCommand('kalibreer_sensoren')">&#8635; Kalibreer</button>
+    </div>
+
+    <div style="padding: 12px 24px 0;">
+      <div class="log-bar">
+        <span class="log-prefix">&gt;_</span>
+        <span class="log-text" id="logText">Awaiting connection&#8230;</span>
+      </div>
+    </div>
+
+    <div class="cali-panel" id="caliPanel">
+      <span class="cali-title">&gt;_ Kalibratie waarden</span>
+      <div class="cali-grid">
+        <div class="cali-item ci-pending" id="ci-achter"><span class="ci-label">Achter</span><span class="ci-value" id="cv-achter">&#8212;</span></div>
+        <div class="cali-item ci-pending" id="ci-links"><span class="ci-label">Links</span><span class="ci-value" id="cv-links">&#8212;</span></div>
+        <div class="cali-item ci-pending" id="ci-rechts"><span class="ci-label">Rechts</span><span class="ci-value" id="cv-rechts">&#8212;</span></div>
+        <div class="cali-item ci-pending" id="ci-links-turn"><span class="ci-label">Links (draai)</span><span class="ci-value" id="cv-links-turn">&#8212;</span></div>
+        <div class="cali-item ci-pending" id="ci-rechts-turn"><span class="ci-label">Rechts (draai)</span><span class="ci-value" id="cv-rechts-turn">&#8212;</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Manual control</div>
+      <div class="dpad-wrap">
+        <div class="dpad">
+          <button class="dpad-btn dpad-round" onclick="qAdd('beweging_garage')">
+            <span class="round-icon">&#127968;</span>
+            <span>Garage</span>
+          </button>
+          <button class="dpad-btn" onclick="qAdd('move_forward')">
+            <span class="arrow">&#9650;</span><span>FWD</span>
+          </button>
+          <button class="dpad-btn dpad-round" onclick="qAdd('verzamel_object')">
+            <span class="round-icon">&#128230;</span>
+            <span>Plaats</span>
+          </button>
+          <button class="dpad-btn" onclick="qAdd('move_left')">
+            <span class="arrow">&#9664;</span><span>LEFT</span>
+          </button>
+          <div class="dpad-btn dpad-center">
+            <span style="font-size:22px; color:var(--border);">&#10011;</span>
+          </div>
+          <button class="dpad-btn" onclick="qAdd('move_right')">
+            <span class="arrow">&#9654;</span><span>RIGHT</span>
+          </button>
+          <div></div>
+          <button class="dpad-btn back-only" onclick="qAdd('move_back')" title="Achteruit">
+            <span class="arrow">&#9660;</span><span>BACK</span>
+          </button>
+          <div></div>
+        </div>
+      </div>
+      <div class="info-note">
+        <strong>D-pad</strong> voegt commando's toe aan de wachtrij &#8212; gebruik <strong>&#9654; Verstuur wachtrij</strong> om te versturen.
+      </div>
+    </div>
+
+    <div class="emergency-bar">
+      <button class="btn-emergency" onclick="sendCommand('noodstop')">
+        <span class="stop-icon">&#9635;</span>
+        NOOD STOP
+      </button>
+    </div>
+
+    <div class="queue-section">
+      <div class="section-label">Command queue</div>
+      <div class="queue-box">
+        <div class="queue-title">
+          <span>&gt;_ WACHTRIJ &#8212; <span id="queueCount">0</span> commando's</span>
+          <span onclick="clearQueue()">wis alles &#10005;</span>
+        </div>
+        <div class="queue-items" id="queueItems">
+          <span class="queue-empty">Leeg &#8212; gebruik de d-pad hierboven.</span>
+        </div>
+      </div>
+      <div class="queue-run-row">
+        <button class="btn-run-queue" id="btnRunQueue" onclick="runQueue()" disabled>
+          &#9654; Verstuur wachtrij naar PICO
+        </button>
+        <button class="btn-clear-queue" onclick="clearQueue()">Wis</button>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="planner-shell">
+    <div class="planner-header">&gt;_ Auto route planner</div>
+    <div class="planner-inner">
+
+      <div class="info-note">
+        Stel <strong>&#128663; Start</strong>, <strong>&#128994; Toren</strong> en <strong>&#128308; Obstakel</strong> in. Kies ook de startrichting van de wagen voor correcte draaiberekening.
+      </div>
+
+      <div class="grid-legend">
+        <div class="legend-item"><div class="legend-dot start"></div><span>Start</span></div>
+        <div class="legend-item"><div class="legend-dot green"></div><span>Toren</span></div>
+        <div class="legend-item"><div class="legend-dot red"></div><span>Obstakel</span></div>
+        <div class="legend-item"><div class="legend-dot path"></div><span>Route</span></div>
+      </div>
+
+      <div class="planner-controls">
+        <button class="btn-mode active-start" id="btnModeStart" onclick="setMode('start')">&#128663; Start</button>
+        <button class="btn-mode" id="btnModeGreen" onclick="setMode('green')">&#128994; Toren</button>
+        <button class="btn-mode" id="btnModeRed"   onclick="setMode('red')">&#128308; Obstakel</button>
+        <button class="btn-clear" onclick="clearGrid()">Wis</button>
+      </div>
+
+      <!-- Orientation picker -->
+      <div class="orient-row">
+        <span class="orient-label">Startrichting:</span>
+        <button class="btn-orient" id="orientUp"    onclick="setOrient(0)">&#9650; Noord</button>
+        <button class="btn-orient active" id="orientRight" onclick="setOrient(1)">&#9654; Oost</button>
+        <button class="btn-orient" id="orientDown"  onclick="setOrient(2)">&#9660; Zuid</button>
+        <button class="btn-orient" id="orientLeft"  onclick="setOrient(3)">&#9664; West</button>
+      </div>
+
+      <div class="grid-wrap">
+        <div class="route-grid" id="routeGrid"></div>
+      </div>
+
+      <button class="btn-calculate" onclick="calculateRoute()">&#9889; Bereken snelste route</button>
+
+      <div class="route-result" id="routeResult">
+        <span class="r-label">&gt;_ ROUTE OUTPUT</span>
+        <span style="color:#555;">Stel start en torens in, klik dan Bereken.</span>
+      </div>
+
+      <div class="route-actions">
+        <button class="btn-route-action to-queue" id="btnToQueue" onclick="routeToQueue()" disabled>
+          + Voeg route toe aan wachtrij
+        </button>
+        <button class="btn-route-action send-now" id="btnSendNow" onclick="routeSendNow()" disabled>
+          &#9889; Verstuur direct naar PICO
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let socket = undefined;
+
+  function setLog(msg, type) {
+    type = type || '';
+    var el = document.getElementById('logText');
+    el.textContent = msg;
+    el.className = 'log-text ' + type;
+  }
+
+  function setStatus(connected) {
+    var pill = document.getElementById('statusPill');
+    var text = document.getElementById('statusText');
+    pill.className = 'status-pill' + (connected ? ' connected' : '');
+    text.textContent = connected ? 'Connected' : 'Disconnected';
+  }
+
+  function connect_socket() {
+    disconnect_socket();
+    setLog('Connecting to ws://192.168.4.1:5000\u2026');
+    socket = new WebSocket("ws://192.168.4.1:5000/connect-websocket");
+    socket.addEventListener("open", function() { setStatus(true); setLog('Connection established.', 'ok'); });
+    socket.addEventListener("close", function() { socket = undefined; setStatus(false); setLog('Connection closed.', 'err'); });
+    socket.addEventListener("message", function(event) {
+      if (event.data.startsWith('cali:')) {
+        var parts = event.data.slice(5).split(',');
+        var ids  = ['cv-achter','cv-links','cv-rechts','cv-links-turn','cv-rechts-turn'];
+        var pids = ['ci-achter','ci-links','ci-rechts','ci-links-turn','ci-rechts-turn'];
+        ids.forEach(function(id, i) {
+          var el = document.getElementById(id);
+          if (el && parts[i] !== undefined) {
+            el.textContent = parts[i];
+            document.getElementById(pids[i]).classList.remove('ci-pending');
+          }
+        });
+        setLog('\u2190 Kalibratie ontvangen', 'ok');
+      } else {
+        setLog('\u2190 ' + event.data);
+      }
+    });
+    socket.addEventListener("error", function() { socket = undefined; setStatus(false); setLog('Connection error \u2014 check PICO network.', 'err'); });
+  }
+
+  function disconnect_socket() {
+    if (socket !== undefined) socket.close();
+  }
+
+  function sendCommand(command) {
+    if (socket !== undefined) {
+      socket.send(command);
+      setLog('\u2192 ' + command, 'ok');
+    } else {
+      setLog('Not connected \u2014 press Connect first.', 'err');
+    }
+  }
+
+  // Manual Queue
+  var manualQueue = [];
+
+  var CMD_META = {
+    'move_forward':    { label: '\u25b2 vooruit',   cls: 'q-fwd'  },
+    'move_back':       { label: '\u25bc achteruit', cls: 'q-back' },
+    'move_left':       { label: '\u25c4 links',     cls: 'q-left' },
+    'move_right':      { label: '\u25ba rechts',    cls: 'q-right'},
+    'verzamel_object': { label: '\ud83d\udce6 plaats object', cls: 'q-place'},
+    'noodstop':        { label: '\u2b1b stop',      cls: 'q-stop' },
+    'beweging_garage': { label: '\ud83c\udfe0 garage', cls: 'q-fwd' },
+  };
+
+  function qAdd(cmd) {
+    manualQueue.push(cmd);
+    renderQueue();
+  }
+
+  function qRemove(idx) {
+    manualQueue.splice(idx, 1);
+    renderQueue();
+  }
+
+  function clearQueue() {
+    manualQueue = [];
+    renderQueue();
+  }
+
+  function renderQueue() {
+    var container = document.getElementById('queueItems');
+    var count     = document.getElementById('queueCount');
+    var runBtn    = document.getElementById('btnRunQueue');
+    count.textContent = manualQueue.length;
+    container.innerHTML = '';
+    if (manualQueue.length === 0) {
+      var e = document.createElement('span');
+      e.className = 'queue-empty';
+      e.textContent = 'Leeg \u2014 gebruik de d-pad hierboven.';
+      container.appendChild(e);
+      runBtn.disabled = true;
+      return;
+    }
+    runBtn.disabled = false;
+    manualQueue.forEach(function(cmd, i) {
+      var meta = CMD_META[cmd] || { label: cmd, cls: 'q-fwd' };
+      var item = document.createElement('div');
+      item.className = 'queue-item ' + meta.cls;
+      item.title = 'Klik om te verwijderen';
+      item.innerHTML = '<span>' + meta.label + '</span><span class="q-del">\u2715</span>';
+      item.addEventListener('click', (function(idx){ return function(){ qRemove(idx); }; })(i));
+      container.appendChild(item);
+    });
+  }
+
+  function runQueue() {
+    if (manualQueue.length === 0) { setLog('Wachtrij is leeg.', 'err'); return; }
+    manualQueue.forEach(function(cmd){ sendCommand(cmd); });
+    setLog('\u2192 Wachtrij verstuurd (' + manualQueue.length + ' commando\'s)', 'ok');
+    clearQueue();
+  }
+
+  // Route Planner
+  var COLS = 6, ROWS = 4;
+  var gridState = [];
+  for (var _i = 0; _i < COLS * ROWS; _i++) gridState.push('empty');
+  var startIdx = 0;
+  gridState[startIdx] = 'start';
+  var paintMode = 'start';
+  var lastComputedCmds = null;
+
+  // 0=north(up) 1=east(right) 2=south(down) 3=west(left) — default east
+  var startHeading = 1;
+  var ORIENT_IDS = ['orientUp', 'orientRight', 'orientDown', 'orientLeft'];
+  var HEADING_ARROWS = ['\u25b2', '\u25ba', '\u25bc', '\u25c4'];
+
+  function setOrient(h) {
+    startHeading = h;
+    ORIENT_IDS.forEach(function(id, i) {
+      document.getElementById(id).classList.toggle('active', i === h);
+    });
+    buildGrid();
+  }
+
+  function buildGrid() {
+    var g = document.getElementById('routeGrid');
+    g.innerHTML = '';
+    gridState.forEach(function(state, i) {
+      var col = i % COLS;
+      var cell = document.createElement('div');
+      cell.className = 'grid-cell state-' + state;
+      cell.dataset.i = i;
+
+      var dot = document.createElement('div');
+      dot.className = 'cell-dot';
+      cell.appendChild(dot);
+
+      if (state === 'start') {
+        var badge = document.createElement('span');
+        badge.className = 'cell-start-badge';
+        badge.textContent = '\ud83d\ude97';
+        cell.appendChild(badge);
+
+        var hbadge = document.createElement('span');
+        hbadge.className = 'cell-heading-badge';
+        hbadge.textContent = HEADING_ARROWS[startHeading];
+        cell.appendChild(hbadge);
+      }
+
+      var lbl = document.createElement('span');
+      lbl.className = 'cell-label';
+      lbl.textContent = col + ',' + Math.floor(i / COLS);
+      cell.appendChild(lbl);
+
+      cell.addEventListener('click', (function(idx){ return function(){ toggleCell(idx); }; })(i));
+      g.appendChild(cell);
+    });
+  }
+
+  function toggleCell(i) {
+    var cur = gridState[i];
+    if (paintMode === 'start') {
+      if (cur === 'start') return;
+      gridState[startIdx] = 'empty';
+      startIdx = i;
+      gridState[i] = 'start';
+    } else if (paintMode === 'green') {
+      if (cur === 'start') return;
+      gridState[i] = cur === 'green' ? 'empty' : 'green';
+    } else {
+      if (cur === 'start') return;
+      gridState[i] = cur === 'red' ? 'empty' : 'red';
+    }
+    gridState = gridState.map(function(s){ return s === 'path' ? 'empty' : s; });
+    lastComputedCmds = null;
+    document.getElementById('btnToQueue').disabled = true;
+    document.getElementById('btnSendNow').disabled = true;
+    buildGrid();
+  }
+
+  function setMode(mode) {
+    paintMode = mode;
+    document.getElementById('btnModeStart').className = 'btn-mode' + (mode === 'start' ? ' active-start' : '');
+    document.getElementById('btnModeGreen').className = 'btn-mode' + (mode === 'green' ? ' active-green' : '');
+    document.getElementById('btnModeRed').className   = 'btn-mode' + (mode === 'red'   ? ' active-red'   : '');
+  }
+
+  function clearGrid() {
+    gridState = [];
+    for (var i = 0; i < COLS * ROWS; i++) gridState.push('empty');
+    startIdx = 0;
+    gridState[startIdx] = 'start';
+    lastComputedCmds = null;
+    document.getElementById('btnToQueue').disabled = true;
+    document.getElementById('btnSendNow').disabled = true;
+    buildGrid();
+    document.getElementById('routeResult').innerHTML =
+      '<span class="r-label">&gt;_ ROUTE OUTPUT</span><span style="color:#555;">Rooster gewist.</span>';
+  }
+
+  function bfs(from, to, blocked) {
+    if (from === to) return [from];
+    var visited = new Set([from]);
+    var queue = [[from, [from]]];
+    while (queue.length) {
+      var cur = queue[0][0], path = queue[0][1]; queue.shift();
+      var nbs = neighbors(cur);
+      for (var n = 0; n < nbs.length; n++) {
+        var nb = nbs[n];
+        if (blocked.has(nb) || visited.has(nb)) continue;
+        var newPath = path.concat([nb]);
+        if (nb === to) return newPath;
+        visited.add(nb);
+        queue.push([nb, newPath]);
+      }
+    }
+    return null;
+  }
+
+  function neighbors(idx) {
+    var col = idx % COLS, row = Math.floor(idx / COLS);
+    var result = [];
+    if (row > 0)        result.push(idx - COLS);
+    if (row < ROWS - 1) result.push(idx + COLS);
+    if (col > 0)        result.push(idx - 1);
+    if (col < COLS - 1) result.push(idx + 1);
+    return result;
+  }
+
+  function greedyTSP(start, targets, blocked) {
+    var bestPath = null;
+    var bestLen = Infinity;
+
+    function backtrack(current, remaining, dynamicBlocked, pathSoFar) {
+      // Prune: if current path is already longer than best found, stop
+      if (pathSoFar.length >= bestLen) return;
+
+      if (remaining.length === 0) {
+        // Try to return to start
+        var ret = bfs(current, start, dynamicBlocked);
+        if (!ret) return;
+        var fullLen = pathSoFar.length + ret.length - 1;
+        if (fullLen < bestLen) {
+          bestLen = fullLen;
+          bestPath = pathSoFar.slice();
+          for (var k = 1; k < ret.length; k++) bestPath.push(ret[k]);
+        }
+        return;
+      }
+
+      for (var i = 0; i < remaining.length; i++) {
+        var target = remaining[i];
+        var p = bfs(current, target, dynamicBlocked);
+        if (!p) continue; // dead branch: prune
+
+        // Build new path and blocked set
+        var newPath = pathSoFar.slice();
+        for (var j = 1; j < p.length; j++) newPath.push(p[j]);
+
+        // Prune early if already too long
+        if (newPath.length >= bestLen) continue;
+
+        var newBlocked = new Set(dynamicBlocked);
+        newBlocked.add(target);
+
+        var newRemaining = remaining.slice(0, i).concat(remaining.slice(i + 1));
+        backtrack(target, newRemaining, newBlocked, newPath);
+      }
+    }
+
+    backtrack(start, targets, new Set(blocked), [start]);
+    return bestPath; // null if no valid route exists
+  }
+
+  function pathToCommands(path, greenSet) {
+    var cmds = [];
+    var heading = startHeading;
+    // heading: 0=north(up), 1=east(right), 2=south(down), 3=west(left)
+    // dx[d] = column delta, dy[d] = row delta for direction d
+    var dx = [0, 1, 0, -1];
+    var dy = [-1, 0, 1, 0];
+
+    for (var i = 1; i < path.length; i++) {
+      var from = path[i-1], to = path[i];
+      var fc = from % COLS, tc = to % COLS;
+      var fr = Math.floor(from / COLS), tr = Math.floor(to / COLS);
+      var ddx = tc - fc, ddy = tr - fr;
+
+      // Find which direction we need to move
+      var dir = -1;
+      for (var d = 0; d < 4; d++) {
+        if (dx[d] === ddx && dy[d] === ddy) { dir = d; break; }
+      }
+
+      // Emit turn commands to face the right direction
+      var diff = (dir - heading + 4) % 4;
+      if (diff === 1) {
+        cmds.push('move_right');
+        heading = dir;
+      } else if (diff === 3) {
+        cmds.push('move_left');
+        heading = dir;
+      } else if (diff === 2) {
+        cmds.push('move_right');
+        cmds.push('move_right');
+        heading = dir;
+      }
+      // diff === 0: already facing right, no turn needed
+
+      // If the DESTINATION cell has a tower to place, place it BEFORE moving
+      // (turn first, arrive at current node facing right direction, place, then drive forward)
+      // Actually: we are AT 'from', facing 'dir'. We need to move to 'to'.
+      // The tower is placed AT 'to', so we must move forward first, then place.
+      // But if we also need to turn after placing (next step has different dir),
+      // the turn must happen correctly. So sequence is:
+      // [turn if needed] → move_forward → [plaats if green destination]
+      cmds.push('move_forward');
+
+      if (greenSet.has(to)) {
+        // Check if the NEXT step requires a turn. If so: turn first, then place.
+        var nextDir = -1;
+        if (i + 1 < path.length) {
+          var nfrom = path[i], nto = path[i+1];
+          var nfc = nfrom % COLS, ntc = nto % COLS;
+          var nfr = Math.floor(nfrom / COLS), ntr = Math.floor(nto / COLS);
+          var nddx = ntc - nfc, nddy = ntr - nfr;
+          for (var nd = 0; nd < 4; nd++) {
+            if (dx[nd] === nddx && dy[nd] === nddy) { nextDir = nd; break; }
+          }
+          var ndiff = (nextDir - heading + 4) % 4;
+          if (ndiff === 1) {
+            cmds.push('move_right');
+            heading = nextDir;
+          } else if (ndiff === 3) {
+            cmds.push('move_left');
+            heading = nextDir;
+          } else if (ndiff === 2) {
+            cmds.push('move_right');
+            cmds.push('move_right');
+            heading = nextDir;
+          }
+        }
+        cmds.push('verzamel_object');
+      }
+    }
+    return cmds;
+  }
+
+  function calculateRoute() {
+    var blocked = new Set();
+    var targets = [];
+    var greenSet = new Set();
+
+    gridState.forEach(function(s, i) {
+      if (s === 'red')   blocked.add(i);
+      if (s === 'green') { targets.push(i); greenSet.add(i); }
+    });
+
+    var resultEl = document.getElementById('routeResult');
+    document.getElementById('btnToQueue').disabled = true;
+    document.getElementById('btnSendNow').disabled = true;
+    lastComputedCmds = null;
+
+    if (targets.length === 0) {
+      resultEl.innerHTML = '<span class="r-label">&gt;_ ROUTE OUTPUT</span><span class="r-err">Geen torens (groen) aangeduid.</span>';
+      return;
+    }
+
+    var path = greedyTSP(startIdx, targets, blocked);
+
+    if (!path) {
+      resultEl.innerHTML = '<span class="r-label">&gt;_ ROUTE OUTPUT</span><span class="r-err">Geen geldige route gevonden \u2014 obstakel blokkeert pad.</span>';
+      return;
+    }
+
+    gridState = gridState.map(function(s){ return s === 'path' ? 'empty' : s; });
+    path.forEach(function(i){ if (gridState[i] === 'empty') gridState[i] = 'path'; });
+    buildGrid();
+
+    var cmds = pathToCommands(path, greenSet);
+    lastComputedCmds = cmds;
+
+    document.getElementById('btnToQueue').disabled = false;
+    document.getElementById('btnSendNow').disabled = false;
+
+    var badges = cmds.map(function(c) {
+      var cls = '';
+      var label = c;
+      if (c === 'move_forward')         { cls = 'fwd';   label = '▲ vooruit'; }
+      else if (c === 'move_back')       { cls = 'back';  label = '▼ achteruit'; }
+      else if (c === 'verzamel_object') { cls = 'place'; label = '📦 plaats object'; }
+      else if (c === 'move_left')       { cls = 'turn';  label = '◄ links'; }
+      else if (c === 'move_right')      { cls = 'turn';  label = '► rechts'; }
+      else cls = 'turn';
+      return '<span class="step-badge ' + cls + '">' + label + '</span>';
+    }).join('');
+
+    var towerCount = cmds.filter(function(c){ return c === 'verzamel_object'; }).length;
+    resultEl.innerHTML =
+      '<span class="r-label">&gt;_ ROUTE OUTPUT \u2014 ' + cmds.length + ' stappen | ' + targets.length + ' torens | ' + towerCount + ' plaatsingen</span>' +
+      '<span class="r-ok">Route berekend \u2713 \u2014 kies hieronder hoe te versturen.</span>' +
+      '<div class="step-badges">' + badges + '</div>';
+  }
+
+  function routeToQueue() {
+    if (!lastComputedCmds) return;
+    lastComputedCmds.forEach(function(cmd){ manualQueue.push(cmd); });
+    renderQueue();
+    setLog('Route toegevoegd aan wachtrij (' + lastComputedCmds.length + ' stappen)', 'ok');
+  }
+
+  function routeSendNow() {
+    if (!lastComputedCmds) return;
+    lastComputedCmds.forEach(function(cmd){ sendCommand(cmd); });
+    setLog('\u2192 Route direct verstuurd (' + lastComputedCmds.length + ' stappen)', 'ok');
+  }
+
+  buildGrid();
+  renderQueue();
+</script>
+</body>
+</html>
